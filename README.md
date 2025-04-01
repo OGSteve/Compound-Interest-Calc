@@ -1,3 +1,5 @@
+<<<<<<< HEAD
+
 # Enhanced Compound Interest Calculator
 
 A modern, feature-rich compound interest calculator that provides more realistic investment projections by incorporating variable contributions, market volatility, inflation, and tax considerations.
@@ -74,4 +76,10 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+# This project is licensed under the MIT License - see the LICENSE file for details.
+
+# Compound-Interest-Calc
+
+Got sick of investor.gov's compound interest calc, figured AI could do it better.
+
+> > > > > > > aeda4aeb079825ea7c3888849b21c33e92c8da86
