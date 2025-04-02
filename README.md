@@ -12,7 +12,6 @@ A sophisticated financial planning tool that provides realistic investment proje
 - [Mathematical Models](#mathematical-models)
 - [Setup Guide](#setup-guide)
 - [Usage Guide](#usage-guide)
-- [Testing](#testing)
 - [Advanced Topics](#advanced-topics)
 - [Contributing](#contributing)
 - [License](#license)
@@ -217,45 +216,6 @@ Google Analytics is configured to respect user privacy and only track anonymous 
 
 For more information on Google Analytics and privacy considerations, see [Google's privacy policy](https://policies.google.com/privacy).
 
-## Testing
-
-The project includes a comprehensive testing infrastructure to ensure accuracy and reliability.
-
-### Running Tests
-
-```bash
-# Run all tests
-npm test
-
-# Run tests in watch mode (development)
-npm run test:watch
-
-# Run tests with coverage report
-npm run test:coverage
-```
-
-### Test Organization
-
-Tests are organized by component and utility function, following the same structure as the source code:
-
-```
-src/
-├── __tests__/               # Global tests, environment tests
-├── components/
-│   └── __tests__/           # Component tests
-├── utils/
-│   └── __tests__/           # Utility and calculation tests
-```
-
-### Testing Strategy
-
-- **Calculation Accuracy**: Tests verify that financial calculations produce correct results
-- **Component Behavior**: Tests ensure UI components behave as expected and display correct information
-- **Performance**: Tests validate that calculations complete within reasonable time frames
-- **Edge Cases**: Tests check behavior with extreme inputs and unusual scenarios
-
-For more detailed information on testing, see [TESTING.md](./TESTING.md).
-
 ## Usage Guide
 
 ### Basic Usage
@@ -345,7 +305,6 @@ Contributions are welcome! Please follow these steps:
 ### Development Guidelines
 
 - Follow TypeScript best practices
-- Maintain test coverage for calculation logic
 - Use functional components with hooks for React code
 - Document code with JSDoc comments
 - Follow the existing code style and formatting
