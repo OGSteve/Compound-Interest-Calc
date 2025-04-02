@@ -2,6 +2,7 @@
   "name": "compound-interest-calculator",
   "version": "0.1.0",
   "private": true,
+  "homepage": "https://compound-interest.net",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -9,7 +10,9 @@
     "lint": "next lint",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "export": "next build",
+    "deploy": "gh-pages -d out"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.0.2",
@@ -37,6 +40,7 @@
     "autoprefixer": "^10.4.17",
     "eslint": "^8.56.0",
     "eslint-config-next": "14.1.0",
+    "gh-pages": "^6.3.0",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
     "postcss": "^8.4.35",

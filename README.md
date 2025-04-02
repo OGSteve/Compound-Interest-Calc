@@ -189,14 +189,33 @@ yarn build
 
 ### Deployment
 
-The application can be deployed to Vercel with minimal configuration:
+This project is deployed to GitHub Pages with a custom domain. Follow these steps if you need to set up your own deployment:
 
-```bash
-npm install -g vercel
-vercel
-```
+### Automated Deployment with GitHub Actions
 
-For other platforms, build the application first and deploy the `out` directory.
+1. Push your changes to the `main` branch
+2. GitHub Actions will automatically build and deploy to GitHub Pages
+3. The site will be available at your custom domain (or GitHub Pages URL)
+
+### Custom Domain Setup
+
+1. Go to your repository settings > Pages
+2. Under "Custom domain", enter your domain (e.g., compound-interest.net)
+3. Check "Enforce HTTPS" if not already enabled
+4. Set up your DNS provider with the following records:
+   - A record: `@` pointing to GitHub Pages IPs (185.199.108.153, 185.199.109.153, 185.199.110.153, 185.199.111.153)
+   - CNAME record: `www` pointing to `yourusername.github.io`
+
+### Google Analytics Configuration
+
+Google Analytics is configured to respect user privacy and only track anonymous usage metrics.
+
+1. To change the Google Analytics configuration:
+   - Create a new GA4 property in Google Analytics
+   - Update the GA Measurement ID in GitHub repository secrets
+   - This avoids exposing sensitive tracking IDs in the code repository
+
+For more information on Google Analytics and privacy considerations, see [Google's privacy policy](https://policies.google.com/privacy).
 
 ## Testing
 
