@@ -112,6 +112,20 @@ export default function Calculator() {
     }));
   };
 
+  // Helper function to handle retirement phase inputs
+  const handleRetirementInputChange = (
+    subfield: keyof typeof inputs.retirementPhase,
+    value: string | number
+  ) => {
+    setInputs((prev) => ({
+      ...prev,
+      retirementPhase: {
+        ...prev.retirementPhase,
+        [subfield]: value,
+      },
+    }));
+  };
+
   const handleAccountTypeChange = (
     type: "mixed" | "taxable" | "tax-deferred" | "tax-free"
   ) => {
@@ -186,6 +200,34 @@ export default function Calculator() {
           calculationInputs[field] = value === "" ? 0 : Number(value);
         }
       });
+
+      // Also handle retirement phase numeric fields
+      if (
+        typeof calculationInputs.retirementPhase.annualWithdrawal === "string"
+      ) {
+        calculationInputs.retirementPhase.annualWithdrawal =
+          calculationInputs.retirementPhase.annualWithdrawal === ""
+            ? 0
+            : Number(calculationInputs.retirementPhase.annualWithdrawal);
+      }
+
+      if (
+        typeof calculationInputs.retirementPhase.retirementYears === "string"
+      ) {
+        calculationInputs.retirementPhase.retirementYears =
+          calculationInputs.retirementPhase.retirementYears === ""
+            ? 1
+            : Number(calculationInputs.retirementPhase.retirementYears);
+      }
+
+      if (
+        typeof calculationInputs.retirementPhase.retirementReturn === "string"
+      ) {
+        calculationInputs.retirementPhase.retirementReturn =
+          calculationInputs.retirementPhase.retirementReturn === ""
+            ? 0
+            : Number(calculationInputs.retirementPhase.retirementReturn);
+      }
 
       const calculatedResults =
         calculateMonthlyCompoundInterest(calculationInputs);
@@ -287,7 +329,7 @@ export default function Calculator() {
     };
   }, []);
 
-  // Auto-calculate on initial load
+  // Auto-calculate on initial load - commented out to prevent auto-calculation on every change
   // useEffect(() => {
   //   handleCalculate();
   // }, [handleCalculate]);
@@ -504,11 +546,13 @@ export default function Calculator() {
                     type="number"
                     value={inputs.investmentHorizon}
                     onChange={(e) =>
-                      handleInputChange(
-                        "investmentHorizon",
-                        Number(e.target.value)
-                      )
+                      handleInputChange("investmentHorizon", e.target.value)
                     }
+                    onBlur={(e) => {
+                      if (e.target.value === "") {
+                        handleInputChange("investmentHorizon", 0);
+                      }
+                    }}
                     className="w-full pl-3 pr-14 py-3 bg-background/50 border border-border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200"
                     min="1"
                   />
@@ -892,28 +936,30 @@ export default function Calculator() {
                             </span>
                             <input
                               type="number"
-                              value={inputs.retirementPhase.annualWithdrawal}
+                              value={
+                                typeof inputs.retirementPhase
+                                  .annualWithdrawal === "string" &&
+                                inputs.retirementPhase.annualWithdrawal === ""
+                                  ? ""
+                                  : inputs.retirementPhase.annualWithdrawal
+                              }
                               onChange={(e) =>
-                                setInputs((prev) => ({
-                                  ...prev,
-                                  retirementPhase: {
-                                    ...prev.retirementPhase,
-                                    annualWithdrawal:
-                                      e.target.value === ""
-                                        ? 0
-                                        : Number(e.target.value),
-                                  },
-                                }))
+                                handleRetirementInputChange(
+                                  "annualWithdrawal",
+                                  e.target.value
+                                )
                               }
                               onBlur={(e) => {
                                 if (e.target.value === "") {
-                                  setInputs((prev) => ({
-                                    ...prev,
-                                    retirementPhase: {
-                                      ...prev.retirementPhase,
-                                      annualWithdrawal: 0,
-                                    },
-                                  }));
+                                  handleRetirementInputChange(
+                                    "annualWithdrawal",
+                                    0
+                                  );
+                                } else {
+                                  handleRetirementInputChange(
+                                    "annualWithdrawal",
+                                    Number(e.target.value)
+                                  );
                                 }
                               }}
                               className="w-full pl-7 pr-3 py-2 bg-background/50 border border-border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm"
@@ -930,28 +976,30 @@ export default function Calculator() {
                           <div className="relative">
                             <input
                               type="number"
-                              value={inputs.retirementPhase.retirementYears}
+                              value={
+                                typeof inputs.retirementPhase
+                                  .retirementYears === "string" &&
+                                inputs.retirementPhase.retirementYears === ""
+                                  ? ""
+                                  : inputs.retirementPhase.retirementYears
+                              }
                               onChange={(e) =>
-                                setInputs((prev) => ({
-                                  ...prev,
-                                  retirementPhase: {
-                                    ...prev.retirementPhase,
-                                    retirementYears:
-                                      e.target.value === ""
-                                        ? 1
-                                        : Number(e.target.value),
-                                  },
-                                }))
+                                handleRetirementInputChange(
+                                  "retirementYears",
+                                  e.target.value
+                                )
                               }
                               onBlur={(e) => {
                                 if (e.target.value === "") {
-                                  setInputs((prev) => ({
-                                    ...prev,
-                                    retirementPhase: {
-                                      ...prev.retirementPhase,
-                                      retirementYears: 1,
-                                    },
-                                  }));
+                                  handleRetirementInputChange(
+                                    "retirementYears",
+                                    1
+                                  );
+                                } else {
+                                  handleRetirementInputChange(
+                                    "retirementYears",
+                                    Number(e.target.value)
+                                  );
                                 }
                               }}
                               className="w-full px-3 py-2 bg-background/50 border border-border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm"
@@ -972,28 +1020,30 @@ export default function Calculator() {
                           <div className="relative">
                             <input
                               type="number"
-                              value={inputs.retirementPhase.retirementReturn}
+                              value={
+                                typeof inputs.retirementPhase
+                                  .retirementReturn === "string" &&
+                                inputs.retirementPhase.retirementReturn === ""
+                                  ? ""
+                                  : inputs.retirementPhase.retirementReturn
+                              }
                               onChange={(e) =>
-                                setInputs((prev) => ({
-                                  ...prev,
-                                  retirementPhase: {
-                                    ...prev.retirementPhase,
-                                    retirementReturn:
-                                      e.target.value === ""
-                                        ? 0
-                                        : Number(e.target.value),
-                                  },
-                                }))
+                                handleRetirementInputChange(
+                                  "retirementReturn",
+                                  e.target.value
+                                )
                               }
                               onBlur={(e) => {
                                 if (e.target.value === "") {
-                                  setInputs((prev) => ({
-                                    ...prev,
-                                    retirementPhase: {
-                                      ...prev.retirementPhase,
-                                      retirementReturn: 0,
-                                    },
-                                  }));
+                                  handleRetirementInputChange(
+                                    "retirementReturn",
+                                    0
+                                  );
+                                } else {
+                                  handleRetirementInputChange(
+                                    "retirementReturn",
+                                    Number(e.target.value)
+                                  );
                                 }
                               }}
                               className="w-full pl-3 pr-9 py-2 bg-background/50 border border-border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm"
