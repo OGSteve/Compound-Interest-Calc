@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { CalculatorInputs, CalculatorResults } from "@/types/calculator";
 import {
   calculateMonthlyCompoundInterest,
@@ -151,7 +151,7 @@ export default function Calculator() {
     }));
   };
 
-  const handleCalculate = () => {
+  const handleCalculate = useCallback(() => {
     setCalculationComplete(false);
     // Add a small delay to allow for animation effect on recalculation
     setTimeout(() => {
@@ -159,7 +159,7 @@ export default function Calculator() {
       setResults(calculatedResults);
       setCalculationComplete(true);
     }, 300);
-  };
+  }, [inputs]);
 
   const handleExportToExcel = (
     dataType: "investment" | "retirement" = "investment"
@@ -257,7 +257,7 @@ export default function Calculator() {
   // Auto-calculate on initial load
   useEffect(() => {
     handleCalculate();
-  }, []);
+  }, [handleCalculate]);
 
   return (
     <div

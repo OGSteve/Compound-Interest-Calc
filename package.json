@@ -12,6 +12,7 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "export": "next build",
+    "predeploy": "npm run build",
     "deploy": "gh-pages -d out"
   },
   "dependencies": {
@@ -38,9 +39,12 @@
     "@types/react": "^18.2.57",
     "@types/react-dom": "^18.2.19",
     "autoprefixer": "^10.4.17",
-    "eslint": "^8.56.0",
+    "@typescript-eslint/eslint-plugin": "^8.29.0",
+    "@typescript-eslint/parser": "^8.29.0",
+    "eslint": "^8.57.1",
     "eslint-config-next": "14.1.0",
     "gh-pages": "^6.3.0",
+    "globals": "^16.0.0",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
     "postcss": "^8.4.35",
