@@ -1,85 +1,340 @@
-<<<<<<< HEAD
-
 # Enhanced Compound Interest Calculator
 
-A modern, feature-rich compound interest calculator that provides more realistic investment projections by incorporating variable contributions, market volatility, inflation, and tax considerations.
+![Enhanced Compound Interest Calculator](https://img.shields.io/badge/version-1.0.0-blue)
+
+A sophisticated financial planning tool that provides realistic investment projections by incorporating advanced features like monthly compounding, tax considerations, market volatility, and retirement planning.
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [Technical Architecture](#technical-architecture)
+- [Mathematical Models](#mathematical-models)
+- [Setup Guide](#setup-guide)
+- [Usage Guide](#usage-guide)
+- [Testing](#testing)
+- [Advanced Topics](#advanced-topics)
+- [Contributing](#contributing)
+- [License](#license)
+
+## Overview
+
+The Enhanced Compound Interest Calculator goes beyond traditional calculators by modeling real-world investment factors that significantly impact long-term results. Unlike simple calculators that use annual compounding and fixed returns, this tool accounts for monthly compounding, contribution increases, tax implications, market volatility, and withdrawal strategies to produce more realistic projections.
 
 ## Features
 
-- Monthly compounding calculations
-- Variable contribution amounts with annual increases
-- Market volatility modeling
-- Inflation adjustment
-- Tax considerations for different account types
-- Monte Carlo simulation for probability analysis
-- Interactive growth charts
-- Dark mode support
-- Responsive design
+### Core Financial Modeling
 
-## Getting Started
+- **Monthly Compounding:** Compounds interest monthly rather than annually for more realistic growth
+- **Variable Contributions:** Model increasing contributions based on salary growth
+- **Tax-Aware Calculations:** Model different account types with appropriate tax treatment:
+  - Tax-deferred accounts (Traditional 401k, IRA)
+  - Tax-free accounts (Roth 401k, Roth IRA)
+  - Taxable brokerage accounts
+  - Mixed account strategies
+
+### Advanced Financial Factors
+
+- **Inflation Adjustment:** See real purchasing power of future dollars
+- **Fee Impact Analysis:** Account for investment expense ratios and advisory fees
+- **Market Volatility:** Realistically model market ups and downs with fat-tail distributions
+- **Tax-Efficient Withdrawal Strategy:** Optimize withdrawals to minimize tax impact
+
+### Retirement Planning
+
+- **Withdrawal Phase Modeling:** Plan your retirement income strategy
+- **Sequence of Returns Risk:** Test different market timing scenarios
+- **Success Rate Analysis:** Calculate probability of funds lasting through retirement
+- **Tax-Aware Withdrawal Sequencing:** Implement optimal withdrawal order from different account types
+
+### User Experience
+
+- **Interactive Charts:** Visualize growth trajectories, contribution impact, and withdrawals
+- **Probability Analysis:** See median, best-case, and worst-case scenarios
+- **Data Export:** Download detailed year-by-year projections to Excel
+- **Educational Content:** Learn about compound interest, market volatility, and sequence risk
+
+## Technical Architecture
+
+### Frontend Stack
+
+- **Framework:** Next.js 14+ with React 18+
+- **Language:** TypeScript 5.0+
+- **Styling:** Tailwind CSS with custom utility classes
+- **State Management:** React useState hooks
+- **Visualization:** Recharts library
+- **Data Export:** SheetJS (xlsx)
+
+### Key Components
+
+- **Calculator.tsx:** Main component containing the user interface and state management
+- **calculations.ts:** Core financial calculation logic and Monte Carlo simulation
+- **calculator.ts:** TypeScript interfaces for calculator inputs and results
+
+### File Structure
+
+```
+src/
+├── app/
+│   ├── layout.tsx      # Main application layout
+│   ├── page.tsx        # Entry point page
+│   └── globals.css     # Global styles
+├── components/
+│   └── Calculator.tsx  # Main calculator component
+├── types/
+│   └── calculator.ts   # TypeScript interfaces
+└── utils/
+    └── calculations.ts # Financial calculation logic
+```
+
+## Mathematical Models
+
+### Monthly Compound Interest Formula
+
+The core formula for monthly compounding with variable contributions:
+
+```
+FV = P(1 + r/n)^(nt) + PMT × [(1 + r/n)^(nt) - 1] / (r/n) × (1 + r/n)^(nt)
+```
+
+Where:
+
+- FV = Future Value
+- P = Principal (initial investment)
+- r = Annual interest rate (decimal)
+- n = Compounding periods per year (12 for monthly)
+- t = Time in years
+- PMT = Monthly contribution amount
+
+### Volatility Modeling
+
+Volatility is applied at the monthly level using a scaled annual volatility:
+
+```typescript
+// Monthly volatility = Annual volatility / √12
+let monthlyReturnModifier =
+  ((Math.random() - 0.5) * returnVolatility) / Math.sqrt(12) / 100;
+
+// Fat-tail adjustment (5% chance of extreme event)
+if (Math.random() < 0.05) {
+  monthlyReturnModifier *= 2;
+}
+
+const monthlyReturn = monthlyRate + monthlyReturnModifier;
+```
+
+### Sequence Risk Analysis
+
+The calculator implements the Fisher-Yates shuffle algorithm to test different market return sequences during retirement:
+
+```typescript
+// Shuffle only the returns during withdrawal phase
+for (let i = withdrawalReturns.length - 1; i > 0; i--) {
+  const j = Math.floor(Math.random() * (i + 1));
+  [withdrawalReturns[i], withdrawalReturns[j]] = [
+    withdrawalReturns[j],
+    withdrawalReturns[i],
+  ];
+}
+```
+
+## Setup Guide
 
 ### Prerequisites
 
-- Node.js 18.x or later
-- npm or yarn
+- Node.js 18.0+
+- npm 9.0+ or yarn 1.22+
+- Git
 
 ### Installation
 
 1. Clone the repository:
 
-```bash
-git clone https://github.com/yourusername/compound-interest-calculator.git
-cd compound-interest-calculator
-```
+   ```bash
+   git clone https://github.com/yourusername/compound-interest-calculator.git
+   cd compound-interest-calculator
+   ```
 
 2. Install dependencies:
 
+   ```bash
+   npm install
+   # or
+   yarn install
+   ```
+
+3. Create environment file (if needed):
+
+   ```bash
+   cp .env.example .env.local
+   ```
+
+4. Run the development server:
+
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   ```
+
+5. Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+### Building for Production
+
 ```bash
-npm install
+npm run build
 # or
-yarn install
+yarn build
 ```
 
-3. Start the development server:
+### Deployment
+
+The application can be deployed to Vercel with minimal configuration:
 
 ```bash
-npm run dev
-# or
-yarn dev
+npm install -g vercel
+vercel
 ```
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser.
+For other platforms, build the application first and deploy the `out` directory.
 
-## Usage
+## Testing
 
-1. Enter your initial investment amount
-2. Set your monthly contribution
-3. Specify the annual contribution increase rate
-4. Set your investment horizon
-5. Enter expected annual return and volatility
-6. Set inflation rate
-7. Choose your account type
-8. Click "Calculate" to see your results
+The project includes a comprehensive testing infrastructure to ensure accuracy and reliability.
 
-## Technical Details
+### Running Tests
 
-- Built with Next.js 14 and TypeScript
-- Styled with TailwindCSS
-- Charts powered by Recharts
-- Dark mode support
-- Fully responsive design
-- Accessibility compliant
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode (development)
+npm run test:watch
+
+# Run tests with coverage report
+npm run test:coverage
+```
+
+### Test Organization
+
+Tests are organized by component and utility function, following the same structure as the source code:
+
+```
+src/
+├── __tests__/               # Global tests, environment tests
+├── components/
+│   └── __tests__/           # Component tests
+├── utils/
+│   └── __tests__/           # Utility and calculation tests
+```
+
+### Testing Strategy
+
+- **Calculation Accuracy**: Tests verify that financial calculations produce correct results
+- **Component Behavior**: Tests ensure UI components behave as expected and display correct information
+- **Performance**: Tests validate that calculations complete within reasonable time frames
+- **Edge Cases**: Tests check behavior with extreme inputs and unusual scenarios
+
+For more detailed information on testing, see [TESTING.md](./TESTING.md).
+
+## Usage Guide
+
+### Basic Usage
+
+1. **Initial Setup:**
+
+   - Enter your initial investment amount
+   - Set your monthly contribution
+   - Specify annual contribution increase percentage (e.g., to model salary growth)
+   - Define your investment horizon in years
+   - Enter expected annual return percentage
+
+2. **Click "Calculate"** to see projections.
+
+3. **Analyze Results:**
+   - Final balance
+   - Total contributions
+   - Total growth
+   - Inflation-adjusted value
+
+### Advanced Settings
+
+Access advanced options by clicking "Show Advanced Parameters":
+
+1. **Return Volatility:**
+
+   - Higher values (15-20%) model typical stock market behavior
+   - Lower values (5-10%) represent more stable investments
+   - Very low values (2-3%) represent highly conservative portfolios
+
+2. **Inflation Rate:**
+
+   - Typically set to 2-3% based on central bank targets
+   - Higher values model periods of high inflation
+
+3. **Account Type:**
+
+   - Tax-Deferred: Traditional 401(k), Traditional IRA
+   - Tax-Free: Roth 401(k), Roth IRA
+   - Taxable: Brokerage accounts
+   - Mixed: Combination of tax-deferred and tax-free
+
+4. **Retirement Planning:**
+   - Enable to model withdrawal phase
+   - Set annual withdrawal amount
+   - Define withdrawal start year
+   - Choose whether to adjust withdrawals for inflation
+
+## Advanced Topics
+
+### Understanding Probability Analysis
+
+The probability analysis shows three key metrics:
+
+1. **Median Outcome (50th percentile):** The middle result from 1,000 simulations
+2. **90th Percentile:** Only 10% of simulations exceeded this amount
+3. **10th Percentile:** 90% of simulations exceeded this amount
+
+**Why probability analysis is often lower than the main projection:**
+
+The main projection shows a single path using consistent returns, while Monte Carlo simulation accounts for market volatility and sequence risk. Even small volatility compounds over long periods, creating large differences.
+
+### Tax-Efficient Withdrawal Strategy
+
+The calculator implements an optimal withdrawal order:
+
+1. Taxable accounts first (lowest tax impact)
+2. Tax-free accounts second (no tax impact)
+3. Tax-deferred accounts last (highest tax impact)
+
+This strategy typically maximizes portfolio longevity by minimizing tax impact during retirement.
+
+### Sequence of Returns Risk
+
+Sequence risk refers to how the order of investment returns impacts retirement outcomes, especially when making withdrawals. Poor returns early in retirement can significantly reduce portfolio longevity, even with the same average return over time.
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Please follow these steps:
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Commit your changes: `git commit -m 'Add amazing feature'`
+4. Push to the branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request
+
+### Development Guidelines
+
+- Follow TypeScript best practices
+- Maintain test coverage for calculation logic
+- Use functional components with hooks for React code
+- Document code with JSDoc comments
+- Follow the existing code style and formatting
 
 ## License
 
-# This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-# Compound-Interest-Calc
+---
 
-Got sick of investor.gov's compound interest calc, figured AI could do it better.
-
-> > > > > > > aeda4aeb079825ea7c3888849b21c33e92c8da86
+_Disclaimer: This calculator is provided for educational purposes only and should not be considered financial advice. Always consult with a qualified financial professional before making investment decisions._

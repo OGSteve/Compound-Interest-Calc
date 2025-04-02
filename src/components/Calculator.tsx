@@ -7,8 +7,6 @@ import {
   formatCurrency,
 } from "@/utils/calculations";
 import {
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -49,6 +47,10 @@ const tooltips = {
     "The difference between your final balance and total contributions, representing investment earnings.",
   inflationAdjustedValue:
     "Your final balance adjusted for inflation, showing the real purchasing power in today's dollars.",
+  retirementPlanning:
+    "Model your retirement withdrawals to see how long your money might last based on your planned annual spending.",
+  sequenceRisk:
+    "The impact of the order of investment returns, especially important during retirement when making withdrawals.",
 };
 
 const defaultInputs: CalculatorInputs = {
@@ -60,23 +62,30 @@ const defaultInputs: CalculatorInputs = {
   returnVolatility: 15,
   inflationRate: 2,
   taxRate: {
-    income: 22,
+    income: 25,
     dividends: 15,
     capitalGains: 15,
   },
   fees: {
-    expenseRatio: 0.5,
+    expenseRatio: 0.1,
     advisoryFee: 0,
   },
   accountType: "tax-deferred",
   accountAllocation: {
-    taxDeferred: 100,
-    taxFree: 0,
+    taxDeferred: 70,
+    taxFree: 30,
   },
   assetAllocation: {
-    stocks: 70,
+    stocks: 80,
     bonds: 20,
-    cash: 10,
+    cash: 0,
+  },
+  retirementPhase: {
+    enabled: false,
+    annualWithdrawal: 40000,
+    withdrawalAdjustForInflation: true,
+    retirementYears: 30,
+    retirementReturn: 5,
   },
 };
 
@@ -87,6 +96,10 @@ export default function Calculator() {
   const [calculationComplete, setCalculationComplete] = useState(false);
   const [chartFullscreen, setChartFullscreen] = useState(false);
   const chartRef = useRef<HTMLDivElement>(null);
+
+  // Add refs for tooltip handling
+  const tooltipContainerRef = useRef<HTMLDivElement>(null);
+  const activeTooltipRef = useRef<HTMLDivElement | null>(null);
 
   const handleInputChange = (
     field: keyof CalculatorInputs,
@@ -148,23 +161,98 @@ export default function Calculator() {
     }, 300);
   };
 
-  const handleExportToExcel = () => {
+  const handleExportToExcel = (
+    dataType: "investment" | "retirement" = "investment"
+  ) => {
     if (!results) return;
 
+    // Determine which data to export
+    const data =
+      dataType === "investment"
+        ? results.yearByYearDetails
+        : results.retirementPhaseResults?.yearByYearDetails || [];
+
     // Create worksheet with data
-    const worksheet = XLSX.utils.json_to_sheet(results.yearByYearDetails);
+    const worksheet = XLSX.utils.json_to_sheet(data);
 
     // Create workbook and add the worksheet
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Investment Growth");
+    const worksheetName =
+      dataType === "investment"
+        ? "Investment Growth"
+        : "Retirement Withdrawals";
+    XLSX.utils.book_append_sheet(workbook, worksheet, worksheetName);
 
     // Generate Excel file and trigger download
-    XLSX.writeFile(workbook, "investment_projection.xlsx");
+    const fileName =
+      dataType === "investment"
+        ? "investment_projection.xlsx"
+        : "retirement_withdrawals.xlsx";
+    XLSX.writeFile(workbook, fileName);
   };
 
   const toggleFullscreenChart = () => {
     setChartFullscreen(!chartFullscreen);
   };
+
+  // Add tooltip positioning function
+  const handleTooltipMouseEnter = (
+    e: React.MouseEvent<HTMLDivElement>,
+    tooltipText: string
+  ) => {
+    // Remove any existing tooltip
+    if (activeTooltipRef.current) {
+      document.body.removeChild(activeTooltipRef.current);
+      activeTooltipRef.current = null;
+    }
+
+    // Create new tooltip element
+    const tooltipEl = document.createElement("div");
+    tooltipEl.className = "dynamic-tooltip";
+    tooltipEl.innerHTML = tooltipText;
+    document.body.appendChild(tooltipEl);
+    activeTooltipRef.current = tooltipEl;
+
+    // Position tooltip near the mouse but ensure it's visible
+    const positionTooltip = (x: number, y: number) => {
+      const rect = tooltipEl.getBoundingClientRect();
+      // Keep tooltip within viewport bounds
+      let tooltipX = x + 15;
+      let tooltipY = y - rect.height - 10;
+
+      // Adjust if too close to right edge
+      if (tooltipX + rect.width > window.innerWidth) {
+        tooltipX = window.innerWidth - rect.width - 10;
+      }
+
+      // Adjust if too close to top edge
+      if (tooltipY < 10) {
+        tooltipY = y + 25; // Position below the cursor instead
+      }
+
+      tooltipEl.style.left = `${tooltipX}px`;
+      tooltipEl.style.top = `${tooltipY}px`;
+    };
+
+    // Initial positioning
+    positionTooltip(e.clientX, e.clientY);
+  };
+
+  const handleTooltipMouseLeave = () => {
+    if (activeTooltipRef.current) {
+      document.body.removeChild(activeTooltipRef.current);
+      activeTooltipRef.current = null;
+    }
+  };
+
+  // Clean up any tooltips when component unmounts
+  useEffect(() => {
+    return () => {
+      if (activeTooltipRef.current) {
+        document.body.removeChild(activeTooltipRef.current);
+      }
+    };
+  }, []);
 
   // Auto-calculate on initial load
   useEffect(() => {
@@ -172,7 +260,10 @@ export default function Calculator() {
   }, []);
 
   return (
-    <div className="space-y-12 py-6 md:py-8 animate-[slideUpFade_0.6s_ease-in-out]">
+    <div
+      className="space-y-12 py-6 md:py-8 animate-[slideUpFade_0.6s_ease-in-out]"
+      ref={tooltipContainerRef}
+    >
       {/* Header Section */}
       <div className="text-center max-w-4xl mx-auto">
         <h1 className="text-4xl md:text-5xl font-bold mb-4 md:mb-6 gradient-text">
@@ -183,7 +274,6 @@ export default function Calculator() {
           adjustment, tax considerations, and market volatility.
         </p>
       </div>
-
       {/* Main Content Grid - Improved responsive layout */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 md:gap-8">
         {/* Input Section - Adjusted column spans for better proportions */}
@@ -202,7 +292,10 @@ export default function Calculator() {
                   </label>
                   <div
                     className="tooltip"
-                    data-tooltip={tooltips.initialInvestment}
+                    onMouseEnter={(e) =>
+                      handleTooltipMouseEnter(e, tooltips.initialInvestment)
+                    }
+                    onMouseLeave={handleTooltipMouseLeave}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -246,7 +339,10 @@ export default function Calculator() {
                   </label>
                   <div
                     className="tooltip"
-                    data-tooltip={tooltips.monthlyContribution}
+                    onMouseEnter={(e) =>
+                      handleTooltipMouseEnter(e, tooltips.monthlyContribution)
+                    }
+                    onMouseLeave={handleTooltipMouseLeave}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -290,7 +386,13 @@ export default function Calculator() {
                   </label>
                   <div
                     className="tooltip"
-                    data-tooltip={tooltips.annualContributionIncrease}
+                    onMouseEnter={(e) =>
+                      handleTooltipMouseEnter(
+                        e,
+                        tooltips.annualContributionIncrease
+                      )
+                    }
+                    onMouseLeave={handleTooltipMouseLeave}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -335,7 +437,10 @@ export default function Calculator() {
                   </label>
                   <div
                     className="tooltip"
-                    data-tooltip={tooltips.investmentHorizon}
+                    onMouseEnter={(e) =>
+                      handleTooltipMouseEnter(e, tooltips.investmentHorizon)
+                    }
+                    onMouseLeave={handleTooltipMouseLeave}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -379,7 +484,10 @@ export default function Calculator() {
                   </label>
                   <div
                     className="tooltip"
-                    data-tooltip={tooltips.expectedAnnualReturn}
+                    onMouseEnter={(e) =>
+                      handleTooltipMouseEnter(e, tooltips.expectedAnnualReturn)
+                    }
+                    onMouseLeave={handleTooltipMouseLeave}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -451,7 +559,10 @@ export default function Calculator() {
                       </label>
                       <div
                         className="tooltip"
-                        data-tooltip={tooltips.returnVolatility}
+                        onMouseEnter={(e) =>
+                          handleTooltipMouseEnter(e, tooltips.returnVolatility)
+                        }
+                        onMouseLeave={handleTooltipMouseLeave}
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -496,7 +607,10 @@ export default function Calculator() {
                       </label>
                       <div
                         className="tooltip"
-                        data-tooltip={tooltips.inflationRate}
+                        onMouseEnter={(e) =>
+                          handleTooltipMouseEnter(e, tooltips.inflationRate)
+                        }
+                        onMouseLeave={handleTooltipMouseLeave}
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -541,7 +655,10 @@ export default function Calculator() {
                       </label>
                       <div
                         className="tooltip"
-                        data-tooltip={tooltips.accountType}
+                        onMouseEnter={(e) =>
+                          handleTooltipMouseEnter(e, tooltips.accountType)
+                        }
+                        onMouseLeave={handleTooltipMouseLeave}
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -593,7 +710,13 @@ export default function Calculator() {
                         </label>
                         <div
                           className="tooltip"
-                          data-tooltip={tooltips.accountAllocation}
+                          onMouseEnter={(e) =>
+                            handleTooltipMouseEnter(
+                              e,
+                              tooltips.accountAllocation
+                            )
+                          }
+                          onMouseLeave={handleTooltipMouseLeave}
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -654,6 +777,177 @@ export default function Calculator() {
                       </div>
                     </div>
                   )}
+
+                  {/* Retirement Phase Planning */}
+                  <div className="group">
+                    <div className="flex justify-between">
+                      <label className="block text-sm font-medium mb-2 transition-colors">
+                        Retirement Planning
+                      </label>
+                      <div
+                        className="tooltip"
+                        onMouseEnter={(e) =>
+                          handleTooltipMouseEnter(
+                            e,
+                            tooltips.retirementPlanning
+                          )
+                        }
+                        onMouseLeave={handleTooltipMouseLeave}
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="w-4 h-4 text-muted-foreground"
+                        >
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <path d="M12 16v-4M12 8h.01"></path>
+                        </svg>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center mb-4">
+                      <input
+                        type="checkbox"
+                        id="enable-retirement"
+                        checked={inputs.retirementPhase.enabled}
+                        onChange={(e) =>
+                          setInputs((prev) => ({
+                            ...prev,
+                            retirementPhase: {
+                              ...prev.retirementPhase,
+                              enabled: e.target.checked,
+                            },
+                          }))
+                        }
+                        className="w-4 h-4 mr-2 accent-primary"
+                      />
+                      <label htmlFor="enable-retirement" className="text-sm">
+                        Enable retirement withdrawal phase
+                      </label>
+                    </div>
+
+                    {inputs.retirementPhase.enabled && (
+                      <div className="space-y-4 pl-4 border-l-2 border-primary/20 animate-[slideUpFade_0.3s_ease-in-out]">
+                        {/* Annual Withdrawal Amount */}
+                        <div>
+                          <label className="block text-xs font-medium mb-1">
+                            Annual Withdrawal
+                          </label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+                              $
+                            </span>
+                            <input
+                              type="number"
+                              value={inputs.retirementPhase.annualWithdrawal}
+                              onChange={(e) =>
+                                setInputs((prev) => ({
+                                  ...prev,
+                                  retirementPhase: {
+                                    ...prev.retirementPhase,
+                                    annualWithdrawal: Number(e.target.value),
+                                  },
+                                }))
+                              }
+                              className="w-full pl-7 pr-3 py-2 bg-background/50 border border-border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm"
+                              min="0"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Retirement Years */}
+                        <div>
+                          <label className="block text-xs font-medium mb-1">
+                            Retirement Years
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="number"
+                              value={inputs.retirementPhase.retirementYears}
+                              onChange={(e) =>
+                                setInputs((prev) => ({
+                                  ...prev,
+                                  retirementPhase: {
+                                    ...prev.retirementPhase,
+                                    retirementYears: Number(e.target.value),
+                                  },
+                                }))
+                              }
+                              className="w-full px-3 py-2 bg-background/50 border border-border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm"
+                              min="1"
+                              max="50"
+                            />
+                            <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground text-xs">
+                              years
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Return in Retirement */}
+                        <div>
+                          <label className="block text-xs font-medium mb-1">
+                            Expected Return in Retirement
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="number"
+                              value={inputs.retirementPhase.retirementReturn}
+                              onChange={(e) =>
+                                setInputs((prev) => ({
+                                  ...prev,
+                                  retirementPhase: {
+                                    ...prev.retirementPhase,
+                                    retirementReturn: Number(e.target.value),
+                                  },
+                                }))
+                              }
+                              className="w-full pl-3 pr-9 py-2 bg-background/50 border border-border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm"
+                              min="0"
+                              step="0.1"
+                            />
+                            <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground text-xs">
+                              %
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Typically lower than accumulation phase (more
+                            conservative)
+                          </p>
+                        </div>
+
+                        {/* Adjust for Inflation */}
+                        <div className="flex items-center">
+                          <input
+                            type="checkbox"
+                            id="inflation-adjust"
+                            checked={
+                              inputs.retirementPhase
+                                .withdrawalAdjustForInflation
+                            }
+                            onChange={(e) =>
+                              setInputs((prev) => ({
+                                ...prev,
+                                retirementPhase: {
+                                  ...prev.retirementPhase,
+                                  withdrawalAdjustForInflation:
+                                    e.target.checked,
+                                },
+                              }))
+                            }
+                            className="w-4 h-4 mr-2 accent-primary"
+                          />
+                          <label htmlFor="inflation-adjust" className="text-xs">
+                            Adjust withdrawals for inflation
+                          </label>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -676,7 +970,13 @@ export default function Calculator() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                 <div className="glass-card p-4 md:p-6 transition-all duration-300 hover:shadow-lg relative overflow-hidden group">
                   <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <div className="tooltip" data-tooltip={tooltips.finalBalance}>
+                  <div
+                    className="tooltip"
+                    onMouseEnter={(e) =>
+                      handleTooltipMouseEnter(e, tooltips.finalBalance)
+                    }
+                    onMouseLeave={handleTooltipMouseLeave}
+                  >
                     <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center">
                       Final Balance
                       <svg
@@ -708,7 +1008,10 @@ export default function Calculator() {
                   <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   <div
                     className="tooltip"
-                    data-tooltip={tooltips.totalContributions}
+                    onMouseEnter={(e) =>
+                      handleTooltipMouseEnter(e, tooltips.totalContributions)
+                    }
+                    onMouseLeave={handleTooltipMouseLeave}
                   >
                     <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center">
                       Total Contributions
@@ -739,7 +1042,13 @@ export default function Calculator() {
                 </div>
                 <div className="glass-card p-4 md:p-6 transition-all duration-300 hover:shadow-lg relative overflow-hidden group">
                   <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <div className="tooltip" data-tooltip={tooltips.totalGrowth}>
+                  <div
+                    className="tooltip"
+                    onMouseEnter={(e) =>
+                      handleTooltipMouseEnter(e, tooltips.totalGrowth)
+                    }
+                    onMouseLeave={handleTooltipMouseLeave}
+                  >
                     <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center">
                       Total Growth
                       <svg
@@ -771,7 +1080,13 @@ export default function Calculator() {
                   <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   <div
                     className="tooltip"
-                    data-tooltip={tooltips.inflationAdjustedValue}
+                    onMouseEnter={(e) =>
+                      handleTooltipMouseEnter(
+                        e,
+                        tooltips.inflationAdjustedValue
+                      )
+                    }
+                    onMouseLeave={handleTooltipMouseLeave}
                   >
                     <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center">
                       Inflation-Adjusted
@@ -815,7 +1130,7 @@ export default function Calculator() {
                   </h2>
                   <div className="flex space-x-2">
                     <button
-                      onClick={handleExportToExcel}
+                      onClick={() => handleExportToExcel("investment")}
                       className="px-3 py-1 bg-primary/10 hover:bg-primary/20 rounded-md flex items-center text-sm font-medium transition-colors"
                     >
                       <svg
@@ -949,10 +1264,19 @@ export default function Calculator() {
                         width={60}
                       />
                       <Tooltip
-                        formatter={(value: number) => [
-                          formatCurrency(value),
-                          "",
-                        ]}
+                        formatter={(value: number, name: string) => {
+                          // Create more user-friendly labels based on the dataKey name
+                          const labels = {
+                            endingBalance: "Portfolio Balance",
+                            inflationAdjustedValue: "Inflation-Adjusted Value",
+                          };
+
+                          // Use the mapping to get a friendly label, or fall back to the original name
+                          const label =
+                            labels[name as keyof typeof labels] || name;
+
+                          return [formatCurrency(value), label];
+                        }}
                         contentStyle={{
                           backgroundColor: "hsl(var(--card))",
                           borderRadius: "var(--radius)",
@@ -1019,10 +1343,249 @@ export default function Calculator() {
                     with inflation-adjusted values representing the real
                     purchasing power.
                   </p>
+                  <p className="mt-1">
+                    Note: The chart displays the investment horizon with year 0
+                    representing your initial investment and years 1-X showing
+                    years of growth.
+                  </p>
                 </div>
               </div>
 
-              {/* Probability Metrics - Updated for better mobile responsiveness */}
+              {/* Retirement Chart */}
+              {inputs.retirementPhase.enabled &&
+                results?.retirementPhaseResults && (
+                  <div className="glass-card p-4 md:p-6 transition-all duration-300 hover:shadow-lg">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 md:mb-6">
+                      <h2 className="text-xl md:text-2xl font-bold gradient-text mb-2 sm:mb-0">
+                        Retirement Withdrawals
+                      </h2>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleExportToExcel("retirement")}
+                          className="px-3 py-1 bg-primary/10 hover:bg-primary/20 rounded-md flex items-center text-sm font-medium transition-colors"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="w-4 h-4 mr-1"
+                          >
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" y1="15" x2="12" y2="3" />
+                          </svg>
+                          Export
+                        </button>
+                      </div>
+                    </div>
+                    <div className="h-[350px] md:h-[400px] lg:h-[450px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart
+                          data={
+                            results.retirementPhaseResults?.yearByYearDetails ||
+                            []
+                          }
+                          margin={{ top: 20, right: 20, left: 60, bottom: 30 }}
+                        >
+                          <defs>
+                            <linearGradient
+                              id="colorRetirementBalance"
+                              x1="0"
+                              y1="0"
+                              x2="0"
+                              y2="1"
+                            >
+                              <stop
+                                offset="5%"
+                                stopColor="hsl(var(--primary))"
+                                stopOpacity={0.8}
+                              />
+                              <stop
+                                offset="95%"
+                                stopColor="hsl(var(--primary))"
+                                stopOpacity={0}
+                              />
+                            </linearGradient>
+                            <linearGradient
+                              id="colorRetirementInflation"
+                              x1="0"
+                              y1="0"
+                              x2="0"
+                              y2="1"
+                            >
+                              <stop
+                                offset="5%"
+                                stopColor="hsl(var(--secondary))"
+                                stopOpacity={0.8}
+                              />
+                              <stop
+                                offset="95%"
+                                stopColor="hsl(var(--secondary))"
+                                stopOpacity={0}
+                              />
+                            </linearGradient>
+                            <linearGradient
+                              id="colorCumulativeWithdrawals"
+                              x1="0"
+                              y1="0"
+                              x2="0"
+                              y2="1"
+                            >
+                              <stop
+                                offset="5%"
+                                stopColor="rgba(220, 53, 69, 0.8)" // This is a bright red with 80% opacity
+                                stopOpacity={1}
+                              />
+                              <stop
+                                offset="95%"
+                                stopColor="rgba(220, 53, 69, 0.1)" // Faded version of the same red
+                                stopOpacity={1}
+                              />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            stroke="hsl(var(--muted-foreground))"
+                            opacity={0.2}
+                          />
+                          <XAxis
+                            dataKey="year"
+                            tick={{ fill: "hsl(var(--foreground))" }}
+                            tickLine={{
+                              stroke: "hsl(var(--muted-foreground))",
+                            }}
+                            axisLine={{
+                              stroke: "hsl(var(--muted-foreground))",
+                            }}
+                            label={{
+                              value: "Retirement Years",
+                              position: "insideBottomRight",
+                              offset: -10,
+                              fill: "hsl(var(--foreground))",
+                            }}
+                          />
+                          <YAxis
+                            tickFormatter={(value) => formatCurrency(value)}
+                            tick={{ fill: "hsl(var(--foreground))" }}
+                            tickLine={{
+                              stroke: "hsl(var(--muted-foreground))",
+                            }}
+                            axisLine={{
+                              stroke: "hsl(var(--muted-foreground))",
+                            }}
+                            width={60}
+                          />
+                          <Tooltip
+                            formatter={(value: number, name: string) => {
+                              // Create more user-friendly labels based on the dataKey name
+                              const labels = {
+                                endingBalance: "Portfolio Balance",
+                                inflationAdjustedValue:
+                                  "Inflation-Adjusted Value",
+                                cumulativeWithdrawals: "Total Withdrawals",
+                              };
+
+                              // Use the mapping to get a friendly label, or fall back to the original name
+                              const label =
+                                labels[name as keyof typeof labels] || name;
+
+                              return [formatCurrency(value), label];
+                            }}
+                            contentStyle={{
+                              backgroundColor: "hsl(var(--card))",
+                              borderRadius: "var(--radius)",
+                              border: "1px solid hsl(var(--border))",
+                              boxShadow: "0 4px 12px hsl(var(--muted))",
+                              padding: "0.75rem",
+                              color: "hsl(var(--card-foreground))",
+                            }}
+                            labelStyle={{
+                              color: "hsl(var(--foreground))",
+                              fontWeight: 600,
+                            }}
+                            itemStyle={{ color: "hsl(var(--foreground))" }}
+                            animationDuration={300}
+                          />
+                          <Legend
+                            formatter={(value) => (
+                              <span className="text-sm">{value}</span>
+                            )}
+                            wrapperStyle={{
+                              paddingTop: "1.5rem",
+                            }}
+                          />
+                          <ReferenceLine
+                            y={
+                              results.retirementPhaseResults?.summary
+                                .startingBalance || 0
+                            }
+                            stroke="hsl(var(--muted-foreground))"
+                            strokeDasharray="3 3"
+                            label={{
+                              position: "right",
+                              value: "Starting Balance",
+                              fill: "hsl(var(--muted-foreground))",
+                            }}
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="endingBalance"
+                            name="Balance"
+                            stroke="hsl(var(--primary))"
+                            strokeWidth={3}
+                            fillOpacity={1}
+                            fill="url(#colorRetirementBalance)"
+                            activeDot={{ r: 8, strokeWidth: 2 }}
+                            animationDuration={2000}
+                            animationEasing="ease-in-out"
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="inflationAdjustedValue"
+                            name="Inflation-Adjusted"
+                            stroke="hsl(var(--secondary))"
+                            strokeWidth={3}
+                            fillOpacity={1}
+                            fill="url(#colorRetirementInflation)"
+                            activeDot={{ r: 8, strokeWidth: 2 }}
+                            animationDuration={2000}
+                            animationEasing="ease-in-out"
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="cumulativeWithdrawals"
+                            name="Total Withdrawals"
+                            stroke="#dc3545" // Match the stroke to the same red color
+                            strokeWidth={3}
+                            fillOpacity={1}
+                            fill="url(#colorCumulativeWithdrawals)"
+                            activeDot={{ r: 8, strokeWidth: 2 }}
+                            animationDuration={2000}
+                            animationEasing="ease-in-out"
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="mt-4 text-sm text-muted-foreground">
+                      <p>
+                        The retirement chart shows your portfolio balance during
+                        the withdrawal phase, starting with your ending balance
+                        from the investment growth phase.
+                      </p>
+                      <p className="mt-1">
+                        Note: Year 0 represents the start of retirement, and the
+                        chart shows the full number of retirement years that you
+                        specified.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+              {/* Probability Metrics */}
               <div className="glass-card p-4 md:p-6 transition-all duration-300 hover:shadow-lg">
                 <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 gradient-text">
                   Probability Analysis
@@ -1066,18 +1629,84 @@ export default function Calculator() {
                 </div>
                 <div className="mt-6 text-sm text-muted-foreground">
                   <p>
-                    Monte Carlo simulation was used to generate 1,000 possible
+                    Monte Carlo simulation was used to generate 5,000 possible
                     future scenarios based on your inputs, accounting for market
                     volatility.
                   </p>
                 </div>
               </div>
+
+              {/* Retirement Analysis */}
+              {inputs.retirementPhase.enabled && results && (
+                <div className="glass-card p-4 md:p-6 transition-all duration-300 hover:shadow-lg">
+                  <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 gradient-text">
+                    Retirement Analysis
+                  </h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
+                    <div className="bg-background/40 rounded-lg p-4 border border-border/50">
+                      <h3 className="text-sm font-medium text-muted-foreground mb-2">
+                        Years of Income Required
+                      </h3>
+                      <p className="text-xl font-bold">
+                        {results.retirementPhaseResults?.summary
+                          .yearsOfIncome || 0}
+                      </p>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Your specified retirement period.
+                      </p>
+                    </div>
+                    <div className="bg-background/40 rounded-lg p-4 border border-border/50">
+                      <h3 className="text-sm font-medium text-muted-foreground mb-2">
+                        Projected Longevity
+                      </h3>
+                      <p className="text-xl font-bold">
+                        {results.retirementPhaseResults?.summary
+                          .projectedLongevity || 0}
+                      </p>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        How long your portfolio will actually last.
+                      </p>
+                    </div>
+                    <div className="bg-background/40 rounded-lg p-4 border border-border/50">
+                      <h3 className="text-sm font-medium text-muted-foreground mb-2">
+                        Success Rate
+                      </h3>
+                      <p className="text-xl font-bold">
+                        {Math.round(
+                          (results.retirementPhaseResults?.probabilityMetrics
+                            .successRate || 0) * 100
+                        )}
+                        %
+                      </p>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Likelihood your money will last through retirement.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-6 text-sm text-muted-foreground">
+                    <p>
+                      This analysis models your retirement withdrawals starting
+                      with a portfolio value of{" "}
+                      {formatCurrency(
+                        results.retirementPhaseResults?.summary
+                          .startingBalance || 0
+                      )}{" "}
+                      and simulates {inputs.retirementPhase.retirementYears}{" "}
+                      years of retirement with annual withdrawals of{" "}
+                      {formatCurrency(inputs.retirementPhase.annualWithdrawal)}
+                      {inputs.retirementPhase.withdrawalAdjustForInflation &&
+                        " (adjusted for inflation annually)"}
+                      .
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
       </div>
 
-      {/* Educational Section - Better mobile spacing */}
+      {/* Educational Section */}
       <div className="mt-12 md:mt-16 glass-card p-6 md:p-8 transition-all duration-300">
         <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 gradient-text">
           Understanding Compound Interest
@@ -1130,8 +1759,63 @@ export default function Calculator() {
                 purchasing power of your future money.
               </li>
             </ul>
+            <h3 className="text-lg font-semibold mb-3 mt-6">
+              Understanding Sequence Risk
+            </h3>
+            <p className="text-muted-foreground">
+              Sequence of returns risk refers to the danger that the order of
+              investment returns will adversely impact retirees who are making
+              withdrawals. Poor returns in the early years of retirement,
+              combined with withdrawals, can deplete a portfolio prematurely,
+              even if long-term average returns are positive.
+            </p>
+
+            <h3 className="text-lg font-semibold mb-3 mt-6">
+              Retirement Planning
+            </h3>
+            <p className="text-muted-foreground mb-4">
+              Retirement planning involves determining how much you need to save
+              and how to withdraw those savings to maintain your desired
+              lifestyle after you stop working. Key considerations include:
+            </p>
+            <ul className="list-disc pl-5 text-muted-foreground space-y-2">
+              <li>
+                <span className="font-medium">Withdrawal Rate</span>: The 4%
+                rule suggests withdrawing 4% of your portfolio in the first year
+                of retirement, then adjusting for inflation in subsequent years.
+              </li>
+              <li>
+                <span className="font-medium">
+                  Required Minimum Distributions (RMDs)
+                </span>
+                : After age 73, tax-deferred accounts like traditional IRAs
+                require minimum withdrawals based on IRS life expectancy tables.
+              </li>
+              <li>
+                <span className="font-medium">Tax Efficiency</span>: The order
+                in which you withdraw from different account types can
+                significantly impact your tax burden in retirement.
+              </li>
+              <li>
+                <span className="font-medium">Conservative Returns</span>: Most
+                retirees shift to more conservative investments as they age,
+                typically resulting in lower but more stable returns.
+              </li>
+            </ul>
           </div>
         </div>
+      </div>
+
+      {/* Legal Disclaimer */}
+      <div className="mt-8 text-xs text-muted-foreground">
+        <p className="text-center">
+          <strong>Disclaimer</strong>: This calculator is provided for
+          educational and illustrative purposes only. It is not financial advice
+          and does not guarantee future investment performance. Investment
+          returns are subject to market risk, and you may lose money. Consult
+          with a qualified financial professional before making investment
+          decisions.
+        </p>
       </div>
     </div>
   );
