@@ -105,6 +105,7 @@ export default function Calculator() {
     field: keyof CalculatorInputs,
     value: number | string | object
   ) => {
+    // Store the raw value in state
     setInputs((prev) => ({
       ...prev,
       [field]: value,
@@ -139,7 +140,6 @@ export default function Calculator() {
     type: "taxDeferred" | "taxFree",
     value: number
   ) => {
-    const _otherType = type === "taxDeferred" ? "taxFree" : "taxDeferred";
     const otherValue = 100 - value;
 
     setInputs((prev) => ({
@@ -155,7 +155,40 @@ export default function Calculator() {
     setCalculationComplete(false);
     // Add a small delay to allow for animation effect on recalculation
     setTimeout(() => {
-      const calculatedResults = calculateMonthlyCompoundInterest(inputs);
+      // Convert any string values to numbers for calculation
+      const calculationInputs = { ...inputs } as CalculatorInputs;
+
+      // Convert the specific fields you know should be numbers
+      const numericFields: Array<
+        keyof Pick<
+          CalculatorInputs,
+          | "initialInvestment"
+          | "monthlyContribution"
+          | "annualContributionIncrease"
+          | "investmentHorizon"
+          | "expectedAnnualReturn"
+          | "returnVolatility"
+          | "inflationRate"
+        >
+      > = [
+        "initialInvestment",
+        "monthlyContribution",
+        "annualContributionIncrease",
+        "investmentHorizon",
+        "expectedAnnualReturn",
+        "returnVolatility",
+        "inflationRate",
+      ];
+
+      numericFields.forEach((field) => {
+        const value = calculationInputs[field];
+        if (typeof value === "string") {
+          calculationInputs[field] = value === "" ? 0 : Number(value);
+        }
+      });
+
+      const calculatedResults =
+        calculateMonthlyCompoundInterest(calculationInputs);
       setResults(calculatedResults);
       setCalculationComplete(true);
     }, 300);
@@ -255,9 +288,9 @@ export default function Calculator() {
   }, []);
 
   // Auto-calculate on initial load
-  useEffect(() => {
-    handleCalculate();
-  }, [handleCalculate]);
+  // useEffect(() => {
+  //   handleCalculate();
+  // }, [handleCalculate]);
 
   return (
     <div
@@ -320,11 +353,13 @@ export default function Calculator() {
                     type="number"
                     value={inputs.initialInvestment}
                     onChange={(e) =>
-                      handleInputChange(
-                        "initialInvestment",
-                        Number(e.target.value)
-                      )
+                      handleInputChange("initialInvestment", e.target.value)
                     }
+                    onBlur={(e) => {
+                      if (e.target.value === "") {
+                        handleInputChange("initialInvestment", 0);
+                      }
+                    }}
                     className="w-full pl-7 pr-3 py-3 bg-background/50 border border-border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200"
                     min="0"
                   />
@@ -367,11 +402,13 @@ export default function Calculator() {
                     type="number"
                     value={inputs.monthlyContribution}
                     onChange={(e) =>
-                      handleInputChange(
-                        "monthlyContribution",
-                        Number(e.target.value)
-                      )
+                      handleInputChange("monthlyContribution", e.target.value)
                     }
+                    onBlur={(e) => {
+                      if (e.target.value === "") {
+                        handleInputChange("monthlyContribution", 0);
+                      }
+                    }}
                     className="w-full pl-7 pr-3 py-3 bg-background/50 border border-border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200"
                     min="0"
                   />
@@ -416,9 +453,14 @@ export default function Calculator() {
                     onChange={(e) =>
                       handleInputChange(
                         "annualContributionIncrease",
-                        Number(e.target.value)
+                        e.target.value
                       )
                     }
+                    onBlur={(e) => {
+                      if (e.target.value === "") {
+                        handleInputChange("annualContributionIncrease", 0);
+                      }
+                    }}
                     className="w-full pl-3 pr-9 py-3 bg-background/50 border border-border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200"
                     min="0"
                     step="0.1"
@@ -509,11 +551,13 @@ export default function Calculator() {
                     type="number"
                     value={inputs.expectedAnnualReturn}
                     onChange={(e) =>
-                      handleInputChange(
-                        "expectedAnnualReturn",
-                        Number(e.target.value)
-                      )
+                      handleInputChange("expectedAnnualReturn", e.target.value)
                     }
+                    onBlur={(e) => {
+                      if (e.target.value === "") {
+                        handleInputChange("expectedAnnualReturn", 0);
+                      }
+                    }}
                     className="w-full pl-3 pr-9 py-3 bg-background/50 border border-border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200"
                     min="0"
                     step="0.1"
@@ -584,11 +628,13 @@ export default function Calculator() {
                         type="number"
                         value={inputs.returnVolatility}
                         onChange={(e) =>
-                          handleInputChange(
-                            "returnVolatility",
-                            Number(e.target.value)
-                          )
+                          handleInputChange("returnVolatility", e.target.value)
                         }
+                        onBlur={(e) => {
+                          if (e.target.value === "") {
+                            handleInputChange("returnVolatility", 0);
+                          }
+                        }}
                         className="w-full pl-3 pr-9 py-3 bg-background/50 border border-border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200"
                         min="0"
                         step="0.1"
@@ -632,11 +678,13 @@ export default function Calculator() {
                         type="number"
                         value={inputs.inflationRate}
                         onChange={(e) =>
-                          handleInputChange(
-                            "inflationRate",
-                            Number(e.target.value)
-                          )
+                          handleInputChange("inflationRate", e.target.value)
                         }
+                        onBlur={(e) => {
+                          if (e.target.value === "") {
+                            handleInputChange("inflationRate", 0);
+                          }
+                        }}
                         className="w-full pl-3 pr-9 py-3 bg-background/50 border border-border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200"
                         min="0"
                         step="0.1"
@@ -850,10 +898,24 @@ export default function Calculator() {
                                   ...prev,
                                   retirementPhase: {
                                     ...prev.retirementPhase,
-                                    annualWithdrawal: Number(e.target.value),
+                                    annualWithdrawal:
+                                      e.target.value === ""
+                                        ? 0
+                                        : Number(e.target.value),
                                   },
                                 }))
                               }
+                              onBlur={(e) => {
+                                if (e.target.value === "") {
+                                  setInputs((prev) => ({
+                                    ...prev,
+                                    retirementPhase: {
+                                      ...prev.retirementPhase,
+                                      annualWithdrawal: 0,
+                                    },
+                                  }));
+                                }
+                              }}
                               className="w-full pl-7 pr-3 py-2 bg-background/50 border border-border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm"
                               min="0"
                             />
@@ -874,10 +936,24 @@ export default function Calculator() {
                                   ...prev,
                                   retirementPhase: {
                                     ...prev.retirementPhase,
-                                    retirementYears: Number(e.target.value),
+                                    retirementYears:
+                                      e.target.value === ""
+                                        ? 1
+                                        : Number(e.target.value),
                                   },
                                 }))
                               }
+                              onBlur={(e) => {
+                                if (e.target.value === "") {
+                                  setInputs((prev) => ({
+                                    ...prev,
+                                    retirementPhase: {
+                                      ...prev.retirementPhase,
+                                      retirementYears: 1,
+                                    },
+                                  }));
+                                }
+                              }}
                               className="w-full px-3 py-2 bg-background/50 border border-border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm"
                               min="1"
                               max="50"
@@ -902,10 +978,24 @@ export default function Calculator() {
                                   ...prev,
                                   retirementPhase: {
                                     ...prev.retirementPhase,
-                                    retirementReturn: Number(e.target.value),
+                                    retirementReturn:
+                                      e.target.value === ""
+                                        ? 0
+                                        : Number(e.target.value),
                                   },
                                 }))
                               }
+                              onBlur={(e) => {
+                                if (e.target.value === "") {
+                                  setInputs((prev) => ({
+                                    ...prev,
+                                    retirementPhase: {
+                                      ...prev.retirementPhase,
+                                      retirementReturn: 0,
+                                    },
+                                  }));
+                                }
+                              }}
                               className="w-full pl-3 pr-9 py-2 bg-background/50 border border-border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm"
                               min="0"
                               step="0.1"
@@ -1165,7 +1255,7 @@ export default function Calculator() {
                             strokeLinejoin="round"
                             className="w-4 h-4 mr-1"
                           >
-                            <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" />
+                            <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 0 2 2v3" />
                           </svg>
                           Close
                         </>
@@ -1305,7 +1395,7 @@ export default function Calculator() {
                         stroke="hsl(var(--muted-foreground))"
                         strokeDasharray="3 3"
                         label={{
-                          position: "right",
+                          position: "top",
                           value: "Initial Investment",
                           fill: "hsl(var(--muted-foreground))",
                         }}
@@ -1526,7 +1616,7 @@ export default function Calculator() {
                             stroke="hsl(var(--muted-foreground))"
                             strokeDasharray="3 3"
                             label={{
-                              position: "right",
+                              position: "middle",
                               value: "Starting Balance",
                               fill: "hsl(var(--muted-foreground))",
                             }}
