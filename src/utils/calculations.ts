@@ -57,7 +57,7 @@ export const calculateMonthlyCompoundInterest = (
 
   // Calculate basic monthly rates
   const monthlyRate = expectedAnnualReturn / 12 / 100;
-  const monthlyInflation = inflationRate / 12 / 100;
+  const _monthlyInflation = inflationRate / 12 / 100;
   const monthlyExpenseRatio = fees.expenseRatio / 12 / 100;
   const monthlyAdvisoryFee = fees.advisoryFee / 12 / 100;
 
@@ -75,7 +75,7 @@ export const calculateMonthlyCompoundInterest = (
   let balanceTaxable = accountType === "taxable" ? initialInvestment : 0;
 
   // Initialize tracking variables
-  let totalContributions = initialInvestment;
+  let _totalContributions = initialInvestment;
   let totalWithdrawals = 0;
   let totalTaxesPaid = 0;
   const yearByYearDetails = [];
@@ -307,7 +307,7 @@ export const calculateMonthlyCompoundInterest = (
       remainingYears: isWithdrawalPhase ? investmentHorizon - year : undefined,
     });
 
-    totalContributions += yearContributions;
+    _totalContributions += yearContributions;
   }
 
   // Calculate sequence of returns risk by simulating different market scenarios
@@ -319,12 +319,12 @@ export const calculateMonthlyCompoundInterest = (
   const results = {
     summary: {
       finalBalance: balanceTaxDeferred + balanceTaxFree + balanceTaxable,
-      totalContributions,
+      totalContributions: _totalContributions,
       totalGrowth:
         balanceTaxDeferred +
         balanceTaxFree +
         balanceTaxable -
-        totalContributions +
+        _totalContributions +
         totalWithdrawals,
       inflationAdjustedValue:
         (balanceTaxDeferred + balanceTaxFree + balanceTaxable) /
@@ -384,7 +384,6 @@ function calculatePredictableTestResult(
     monthlyContribution,
     investmentHorizon,
     expectedAnnualReturn,
-    accountType,
   } = inputs;
 
   // For test case 1: No contributions, just growth
@@ -445,7 +444,7 @@ function calculatePredictableTestResult(
   else {
     // Annual compound interest with regular contributions
     const annualRate = expectedAnnualReturn / 100;
-    const totalContributions =
+    const _totalContributions =
       initialInvestment + monthlyContribution * 12 * investmentHorizon;
 
     // For simplified test cases, we'll use a deterministic calculation
@@ -652,7 +651,7 @@ function calculateSequenceRisk(
 
     // Run a simplified simulation with these returns
     let balance = initialInvestment;
-    let didRunOutOfMoney = false;
+    let _didRunOutOfMoney = false;
 
     for (let year = 0; year < investmentHorizon; year++) {
       // Add contributions during accumulation phase
@@ -669,7 +668,7 @@ function calculateSequenceRisk(
 
         // Check if ran out of money
         if (balance <= 0) {
-          didRunOutOfMoney = true;
+          _didRunOutOfMoney = true;
           balance = 0;
           break;
         }
@@ -693,7 +692,7 @@ function calculateSequenceRisk(
     }
 
     finalBalances.push(balance);
-    if (!didRunOutOfMoney) {
+    if (!_didRunOutOfMoney) {
       successCount++;
     }
   }
@@ -732,7 +731,7 @@ export function calculateRetirementPhase(
 
   // Calculate monthly rates for the retirement phase
   const monthlyRate = retirementExpectedReturn / 12 / 100;
-  const monthlyInflation = inflationRate / 12 / 100;
+  const _monthlyInflation = inflationRate / 12 / 100;
   const monthlyExpenseRatio = fees.expenseRatio / 12 / 100;
   const monthlyAdvisoryFee = fees.advisoryFee / 12 / 100;
 
@@ -1014,7 +1013,7 @@ function calculateRetirementSuccessRate(
   startingBalance: number,
   retirementYears: number
 ): SequenceRiskAnalysis {
-  const { inflationRate, taxRate, fees, retirementPhase } = inputs;
+  const { inflationRate, fees, retirementPhase } = inputs;
 
   // Use retirement expected return instead of accumulation expected return
   const expectedReturn =
@@ -1027,7 +1026,7 @@ function calculateRetirementSuccessRate(
     // Calculate how long the money will actually last with the given parameters
     let balance = startingBalance;
     const annualReturn = expectedReturn / 100;
-    let didRunOutOfMoney = false;
+    let _didRunOutOfMoney = false;
     let yearsLasted = 0;
 
     // For zero return with fixed withdrawals, we can use simple math
@@ -1053,7 +1052,7 @@ function calculateRetirementSuccessRate(
         balance -= withdrawalAmount;
         if (balance <= 0) {
           // Ran out of money
-          didRunOutOfMoney = true;
+          _didRunOutOfMoney = true;
           yearsLasted = year;
           balance = 0;
           break;

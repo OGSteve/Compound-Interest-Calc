@@ -139,7 +139,7 @@ export default function Calculator() {
     type: "taxDeferred" | "taxFree",
     value: number
   ) => {
-    const otherType = type === "taxDeferred" ? "taxFree" : "taxDeferred";
+    const _otherType = type === "taxDeferred" ? "taxFree" : "taxDeferred";
     const otherValue = 100 - value;
 
     setInputs((prev) => ({
@@ -1737,8 +1737,8 @@ export default function Calculator() {
             <ul className="list-disc pl-5 text-muted-foreground space-y-2">
               <li>
                 <span className="font-medium">Contribution Amount</span>: The
-                more you invest, the more you'll have, but consistency matters
-                more than amount.
+                more you invest, the more you&apos;ll have, but consistency
+                matters more than amount.
               </li>
               <li>
                 <span className="font-medium">Rate of Return</span>: Higher
