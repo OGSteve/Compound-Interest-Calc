@@ -11,7 +11,7 @@ export default function Home() {
             email me
           </a>{" "}
           or check out our{" "}
-          <a href="https://github.com/OGSteve/Compound-Interest-Cal" target="_blank" rel="noopener noreferrer" style={{ color: "#0070f3", textDecoration: "none" }}>
+          <a href="https://github.com/OGSteve/Compound-Interest-Calc" target="_blank" rel="noopener noreferrer" style={{ color: "#0070f3", textDecoration: "none" }}>
             GitHub repository
           </a>.
         </p>
