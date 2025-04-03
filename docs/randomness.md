@@ -69,7 +69,7 @@ Examples:
 1. Base monthly rate: 0.667%
 2. Random number generated: 0.51 (just above 0.5)
 3. Adjusted: (0.51 - 0.5) = 0.01
-4. Apply volatility: 0.01 × 15% ÷ √12 ÷ 100 = 0.00004
+4. Apply volatility: 0.01 × 15% ÷ √12 ÷ 100 = 0.00004$$
 5. Check for market shock: Random number 0.27 > 0.05, so no shock
 6. Final monthly return: 0.667% + 0.004% = 0.671%
 7. Growth calculation: $11,129.80 × 0.00671 = $74.68
