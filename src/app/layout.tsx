@@ -32,6 +32,23 @@ export const metadata: Metadata = {
     siteName: "Enhanced Compound Interest Calculator",
     locale: "en_US",
     type: "website",
+    // Add this image section:
+    images: [
+      {
+        url: "https://compound-interest.net/og-image.png",
+        width: 1512,
+        height: 805,
+        alt: "Enhanced Compound Interest Calculator",
+      },
+    ],
+  },
+  // Also add Twitter card data:
+  twitter: {
+    card: "summary_large_image",
+    title: "Enhanced Compound Interest Calculator",
+    description:
+      "Advanced financial projection tool for realistic investment planning",
+    images: ["https://compound-interest.net/og-image.png"],
   },
 };
 
