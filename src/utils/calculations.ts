@@ -611,7 +611,7 @@ function calculateSequenceRisk(
 
   // For non-zero volatility, use the original Monte Carlo simulation
   // Number of simulations to run
-  const simulations = 1000;
+  const simulations = 5000;
   const finalBalances: number[] = [];
   let successCount = 0;
 
@@ -1088,7 +1088,7 @@ function calculateRetirementSuccessRate(
   }
 
   // Number of simulations to run
-  const simulations = 1000;
+  const simulations = 5000;
   const finalBalances: number[] = [];
   let successCount = 0;
 
