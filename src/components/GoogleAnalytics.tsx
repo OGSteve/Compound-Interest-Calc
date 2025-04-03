@@ -2,7 +2,37 @@
 
 import Script from "next/script";
 import { useEffect } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
+
+// Define types for Google Analytics
+interface GtagArguments {
+  command: string;
+  action: string;
+  params?: {
+    page_path?: string;
+    page_title?: string;
+    time_spent?: number;
+    event_category?: string;
+    event_label?: string;
+    interaction_type?: string;
+  };
+}
+
+interface WindowWithGtag extends Window {
+  gtag: (
+    command: string,
+    action: string,
+    params?: {
+      page_path?: string;
+      page_title?: string;
+      time_spent?: number;
+      event_category?: string;
+      event_label?: string;
+      interaction_type?: string;
+    }
+  ) => void;
+  dataLayer: GtagArguments[];
+}
 
 export default function GoogleAnalytics({
   measurementId,
@@ -10,14 +40,14 @@ export default function GoogleAnalytics({
   measurementId: string;
 }) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   // Track page views and time spent
   useEffect(() => {
-    if (typeof window !== "undefined" && (window as any).gtag) {
+    const windowWithGtag = window as unknown as WindowWithGtag;
+    if (typeof window !== "undefined" && windowWithGtag.gtag) {
       // Track page view
-      (window as any).gtag("event", "page_view", {
-        page_path: pathname + searchParams.toString(),
+      windowWithGtag.gtag("event", "page_view", {
+        page_path: pathname,
         page_title: document.title,
       });
 
@@ -25,18 +55,19 @@ export default function GoogleAnalytics({
       const startTime = Date.now();
       return () => {
         const timeSpent = Math.round((Date.now() - startTime) / 1000); // Convert to seconds
-        (window as any).gtag("event", "time_spent", {
+        windowWithGtag.gtag("event", "time_spent", {
           time_spent: timeSpent,
-          page_path: pathname + searchParams.toString(),
+          page_path: pathname,
         });
       };
     }
-  }, [pathname, searchParams]);
+  }, [pathname]);
 
   // Track user interactions
   useEffect(() => {
     if (typeof window === "undefined") return;
 
+    const windowWithGtag = window as unknown as WindowWithGtag;
     const trackInteraction = (event: Event) => {
       const target = event.target as HTMLElement;
       if (!target) return;
@@ -48,11 +79,11 @@ export default function GoogleAnalytics({
 
       // Only track if we have some identifying information
       if (elementId || elementClass || elementText) {
-        (window as any).gtag("event", "user_interaction", {
+        windowWithGtag.gtag("event", "user_interaction", {
           event_category: "engagement",
           event_label: elementId || elementClass || elementText,
           interaction_type: event.type,
-          page_path: pathname + searchParams.toString(),
+          page_path: pathname,
         });
       }
     };
@@ -65,7 +96,7 @@ export default function GoogleAnalytics({
       window.removeEventListener("click", trackInteraction);
       window.removeEventListener("submit", trackInteraction);
     };
-  }, [pathname, searchParams]);
+  }, [pathname]);
 
   return (
     <>
@@ -84,7 +115,7 @@ export default function GoogleAnalytics({
             gtag('config', '${measurementId}', {
               debug_mode: true,
               send_page_view: true,
-              page_path: window.location.pathname + window.location.search,
+              page_path: window.location.pathname,
               page_title: document.title
             });
           `,
