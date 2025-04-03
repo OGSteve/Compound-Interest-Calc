@@ -28,6 +28,7 @@ yarn-error.log*
 # vercel
 .vercel
 .cursorrules
+.cursorrules/
 
 # typescript
 *.tsbuildinfo
@@ -36,6 +37,7 @@ next-env.d.ts
 # IDE
 .vscode/
 .idea/
+.cursor/
 
 # Environment Variables
 .env
