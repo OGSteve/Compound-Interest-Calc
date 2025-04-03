@@ -18,6 +18,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import * as XLSX from "xlsx";
+import UserGuide from "./UserGuide";
 
 // Financial concept tooltips for educational purposes
 const tooltips = {
@@ -51,6 +52,10 @@ const tooltips = {
     "Model your retirement withdrawals to see how long your money might last based on your planned annual spending.",
   sequenceRisk:
     "The impact of the order of investment returns, especially important during retirement when making withdrawals.",
+  expenseRatio:
+    "The annual fee charged by funds to cover operating expenses, expressed as a percentage of assets. Index funds typically range from 0.03% to 0.25%, while actively managed funds average 0.5% to 1.0%.",
+  advisoryFee:
+    "The fee paid to a financial advisor for portfolio management, typically ranging from 0% (self-directed) to 1% of assets under management annually.",
 };
 
 const defaultInputs: CalculatorInputs = {
@@ -58,7 +63,7 @@ const defaultInputs: CalculatorInputs = {
   monthlyContribution: 500,
   annualContributionIncrease: 2,
   investmentHorizon: 30,
-  expectedAnnualReturn: 7,
+  expectedAnnualReturn: 8,
   returnVolatility: 15,
   inflationRate: 2,
   taxRate: {
@@ -100,6 +105,8 @@ export default function Calculator() {
   // Add refs for tooltip handling
   const tooltipContainerRef = useRef<HTMLDivElement>(null);
   const activeTooltipRef = useRef<HTMLDivElement | null>(null);
+
+  const [showUserGuide, setShowUserGuide] = useState(false);
 
   const handleInputChange = (
     field: keyof CalculatorInputs,
@@ -334,6 +341,20 @@ export default function Calculator() {
   //   handleCalculate();
   // }, [handleCalculate]);
 
+  // Helper function to handle fee inputs
+  const handleFeeInputChange = (
+    feeType: keyof typeof inputs.fees,
+    value: string | number
+  ) => {
+    setInputs((prev) => ({
+      ...prev,
+      fees: {
+        ...prev.fees,
+        [feeType]: value,
+      },
+    }));
+  };
+
   return (
     <div
       className="space-y-12 py-6 md:py-8 animate-[slideUpFade_0.6s_ease-in-out]"
@@ -344,11 +365,41 @@ export default function Calculator() {
         <h1 className="text-4xl md:text-5xl font-bold mb-4 md:mb-6 gradient-text">
           Enhanced Compound Interest Calculator
         </h1>
-        <p className="text-base md:text-lg text-muted-foreground">
-          Calculate your investment growth with advanced features like inflation
-          adjustment, tax considerations, and market volatility.
-        </p>
+        <div className="flex flex-col items-center">
+          <p className="text-base md:text-lg text-muted-foreground mb-3">
+            Calculate your investment growth with advanced features like
+            inflation adjustment, tax considerations, and market volatility.
+          </p>
+          <button
+            onClick={() => setShowUserGuide(true)}
+            className="text-sm flex items-center gap-1.5 text-primary hover:text-primary/80 transition-colors"
+            aria-label="Open user guide"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M12 16v-4M12 8h.01"></path>
+            </svg>
+            View User Guide
+          </button>
+        </div>
       </div>
+
+      {/* User Guide Modal */}
+      <UserGuide
+        isOpen={showUserGuide}
+        onClose={() => setShowUserGuide(false)}
+      />
+
       {/* Main Content Grid - Improved responsive layout */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 md:gap-8">
         {/* Input Section - Adjusted column spans for better proportions */}
@@ -738,358 +789,477 @@ export default function Calculator() {
                       </span>
                     </div>
                   </div>
-
-                  {/* Account Type */}
+                  {/* Investment Fees */}
                   <div className="group">
                     <div className="flex justify-between">
-                      <label className="block text-sm font-medium mb-2 transition-colors">
-                        Account Type
+                      <label className="block text-sm font-medium mb-3 transition-colors">
+                        <strong>Investment Fees</strong>
                       </label>
-                      <div
-                        className="tooltip"
-                        onMouseEnter={(e) =>
-                          handleTooltipMouseEnter(e, tooltips.accountType)
-                        }
-                        onMouseLeave={handleTooltipMouseLeave}
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="w-4 h-4 text-muted-foreground"
-                        >
-                          <circle cx="12" cy="12" r="10"></circle>
-                          <path d="M12 16v-4M12 8h.01"></path>
-                        </svg>
-                      </div>
                     </div>
-                    <select
-                      value={inputs.accountType}
-                      onChange={(e) =>
-                        handleAccountTypeChange(
-                          e.target.value as
-                            | "mixed"
-                            | "taxable"
-                            | "tax-deferred"
-                            | "tax-free"
-                        )
-                      }
-                      className="w-full px-3 py-3 bg-background/50 border border-border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200"
-                    >
-                      <option value="tax-deferred">
-                        Tax-Deferred (401k, Traditional IRA)
-                      </option>
-                      <option value="tax-free">
-                        Tax-Free (Roth 401k, Roth IRA)
-                      </option>
-                      <option value="taxable">Taxable Account</option>
-                      <option value="mixed">
-                        Mixed (Tax-Deferred & Tax-Free)
-                      </option>
-                    </select>
-                  </div>
-
-                  {/* Account Allocation (only show if "mixed" is selected) */}
-                  {inputs.accountType === "mixed" && (
-                    <div className="group">
-                      <div className="flex justify-between">
-                        <label className="block text-sm font-medium mb-2 transition-colors">
-                          Account Allocation
-                        </label>
-                        <div
-                          className="tooltip"
-                          onMouseEnter={(e) =>
-                            handleTooltipMouseEnter(
-                              e,
-                              tooltips.accountAllocation
-                            )
-                          }
-                          onMouseLeave={handleTooltipMouseLeave}
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="w-4 h-4 text-muted-foreground"
+                    <div className="space-y-4">
+                      {/* Expense Ratio */}
+                      <div>
+                        <div className="flex justify-between">
+                          <label className="block text-sm font-medium mb-2 transition-colors">
+                            Fund Expense Ratio
+                          </label>
+                          <div
+                            className="tooltip"
+                            onMouseEnter={(e) =>
+                              handleTooltipMouseEnter(e, tooltips.expenseRatio)
+                            }
+                            onMouseLeave={handleTooltipMouseLeave}
                           >
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <path d="M12 16v-4M12 8h.01"></path>
-                          </svg>
-                        </div>
-                      </div>
-                      <div className="space-y-3">
-                        <div>
-                          <div className="flex justify-between text-xs mb-1">
-                            <span>
-                              Tax-Deferred:{" "}
-                              {inputs.accountAllocation.taxDeferred}%
-                            </span>
-                            <span>
-                              Tax-Free: {inputs.accountAllocation.taxFree}%
-                            </span>
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="w-3 h-3 text-muted-foreground"
+                            >
+                              <circle cx="12" cy="12" r="10"></circle>
+                              <path d="M12 16v-4M12 8h.01"></path>
+                            </svg>
                           </div>
+                        </div>
+                        <div className="relative">
                           <input
-                            type="range"
-                            min="0"
-                            max="100"
-                            value={inputs.accountAllocation.taxDeferred}
+                            type="number"
+                            value={inputs.fees.expenseRatio}
                             onChange={(e) =>
-                              handleAccountAllocationChange(
-                                "taxDeferred",
-                                Number(e.target.value)
+                              handleFeeInputChange(
+                                "expenseRatio",
+                                e.target.value
                               )
                             }
-                            className="w-full h-2 bg-background rounded-lg appearance-none cursor-pointer accent-primary"
+                            onBlur={(e) => {
+                              if (e.target.value === "") {
+                                handleFeeInputChange("expenseRatio", 0);
+                              } else {
+                                handleFeeInputChange(
+                                  "expenseRatio",
+                                  Number(e.target.value)
+                                );
+                              }
+                            }}
+                            className="w-full pl-3 pr-9 py-2 bg-background/50 border border-border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm"
+                            min="0"
+                            step="0.01"
+                            max="3"
                           />
+                          <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground text-xs">
+                            %
+                          </span>
                         </div>
-                        <div className="grid grid-cols-2 gap-4 text-xs">
-                          <div className="glass-card p-2 rounded">
-                            <p className="text-center font-medium">
-                              Tax-Deferred
-                            </p>
-                            <p className="text-center text-muted-foreground mt-1">
-                              Pay taxes on withdrawal
-                            </p>
-                          </div>
-                          <div className="glass-card p-2 rounded">
-                            <p className="text-center font-medium">Tax-Free</p>
-                            <p className="text-center text-muted-foreground mt-1">
-                              No taxes on growth
-                            </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Typical range: 0.01-0.25% (index funds), 0.5-1.0%
+                          (active funds)
+                        </p>
+                      </div>
+
+                      {/* Advisory Fee */}
+                      <div>
+                        <div className="flex justify-between">
+                          <label className="block text-sm font-medium mb-2 transition-colors">
+                            Advisory Fee
+                          </label>
+                          <div
+                            className="tooltip"
+                            onMouseEnter={(e) =>
+                              handleTooltipMouseEnter(e, tooltips.advisoryFee)
+                            }
+                            onMouseLeave={handleTooltipMouseLeave}
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="w-3 h-3 text-muted-foreground"
+                            >
+                              <circle cx="12" cy="12" r="10"></circle>
+                              <path d="M12 16v-4M12 8h.01"></path>
+                            </svg>
                           </div>
                         </div>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            value={inputs.fees.advisoryFee}
+                            onChange={(e) =>
+                              handleFeeInputChange(
+                                "advisoryFee",
+                                e.target.value
+                              )
+                            }
+                            onBlur={(e) => {
+                              if (e.target.value === "") {
+                                handleFeeInputChange("advisoryFee", 0);
+                              } else {
+                                handleFeeInputChange(
+                                  "advisoryFee",
+                                  Number(e.target.value)
+                                );
+                              }
+                            }}
+                            className="w-full pl-3 pr-9 py-2 bg-background/50 border border-border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm"
+                            min="0"
+                            step="0.01"
+                            max="2"
+                          />
+                          <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground text-xs">
+                            %
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          0% for self-directed, typically 0.25-1% for
+                          professional management
+                        </p>
                       </div>
                     </div>
-                  )}
+                  </div>
+                </div>
+              )}
 
-                  {/* Retirement Phase Planning */}
-                  <div className="group">
-                    <div className="flex justify-between">
-                      <label className="block text-sm font-medium mb-2 transition-colors">
-                        Retirement Planning
-                      </label>
-                      <div
-                        className="tooltip"
-                        onMouseEnter={(e) =>
-                          handleTooltipMouseEnter(
-                            e,
-                            tooltips.retirementPlanning
+              {/* Account Type */}
+              <div className="group">
+                <div className="flex justify-between">
+                  <label className="block text-sm font-medium mb-2 transition-colors">
+                    Account Type
+                  </label>
+                  <div
+                    className="tooltip"
+                    onMouseEnter={(e) =>
+                      handleTooltipMouseEnter(e, tooltips.accountType)
+                    }
+                    onMouseLeave={handleTooltipMouseLeave}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="w-4 h-4 text-muted-foreground"
+                    >
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <path d="M12 16v-4M12 8h.01"></path>
+                    </svg>
+                  </div>
+                </div>
+                <select
+                  value={inputs.accountType}
+                  onChange={(e) =>
+                    handleAccountTypeChange(
+                      e.target.value as
+                        | "mixed"
+                        | "taxable"
+                        | "tax-deferred"
+                        | "tax-free"
+                    )
+                  }
+                  className="w-full px-3 py-3 bg-background/50 border border-border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200"
+                >
+                  <option value="tax-deferred">
+                    Tax-Deferred (401k, Traditional IRA)
+                  </option>
+                  <option value="tax-free">
+                    Tax-Free (Roth 401k, Roth IRA)
+                  </option>
+                  <option value="taxable">Taxable Account</option>
+                  <option value="mixed">Mixed (Tax-Deferred & Tax-Free)</option>
+                </select>
+              </div>
+
+              {/* Account Allocation (only show if "mixed" is selected) */}
+              {inputs.accountType === "mixed" && (
+                <div className="group">
+                  <div className="flex justify-between">
+                    <label className="block text-sm font-medium mb-2 transition-colors">
+                      Account Allocation
+                    </label>
+                    <div
+                      className="tooltip"
+                      onMouseEnter={(e) =>
+                        handleTooltipMouseEnter(e, tooltips.accountAllocation)
+                      }
+                      onMouseLeave={handleTooltipMouseLeave}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="w-4 h-4 text-muted-foreground"
+                      >
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 16v-4M12 8h.01"></path>
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span>
+                          Tax-Deferred: {inputs.accountAllocation.taxDeferred}%
+                        </span>
+                        <span>
+                          Tax-Free: {inputs.accountAllocation.taxFree}%
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={inputs.accountAllocation.taxDeferred}
+                        onChange={(e) =>
+                          handleAccountAllocationChange(
+                            "taxDeferred",
+                            Number(e.target.value)
                           )
                         }
-                        onMouseLeave={handleTooltipMouseLeave}
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="w-4 h-4 text-muted-foreground"
-                        >
-                          <circle cx="12" cy="12" r="10"></circle>
-                          <path d="M12 16v-4M12 8h.01"></path>
-                        </svg>
+                        className="w-full h-2 bg-background rounded-lg appearance-none cursor-pointer accent-primary"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-xs">
+                      <div className="glass-card p-2 rounded">
+                        <p className="text-center font-medium">Tax-Deferred</p>
+                        <p className="text-center text-muted-foreground mt-1">
+                          Pay taxes on withdrawal
+                        </p>
+                      </div>
+                      <div className="glass-card p-2 rounded">
+                        <p className="text-center font-medium">Tax-Free</p>
+                        <p className="text-center text-muted-foreground mt-1">
+                          No taxes on growth
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Retirement Phase Planning */}
+              <div className="group">
+                <div className="flex justify-between">
+                  <label className="block text-sm font-medium mb-2 transition-colors">
+                    Retirement Planning
+                  </label>
+                  <div
+                    className="tooltip"
+                    onMouseEnter={(e) =>
+                      handleTooltipMouseEnter(e, tooltips.retirementPlanning)
+                    }
+                    onMouseLeave={handleTooltipMouseLeave}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="w-4 h-4 text-muted-foreground"
+                    >
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <path d="M12 16v-4M12 8h.01"></path>
+                    </svg>
+                  </div>
+                </div>
+
+                <div className="flex items-center mb-4">
+                  <input
+                    type="checkbox"
+                    id="enable-retirement"
+                    checked={inputs.retirementPhase.enabled}
+                    onChange={(e) =>
+                      setInputs((prev) => ({
+                        ...prev,
+                        retirementPhase: {
+                          ...prev.retirementPhase,
+                          enabled: e.target.checked,
+                        },
+                      }))
+                    }
+                    className="w-4 h-4 mr-2 accent-primary"
+                  />
+                  <label htmlFor="enable-retirement" className="text-sm">
+                    Enable retirement withdrawal phase
+                  </label>
+                </div>
+
+                {inputs.retirementPhase.enabled && (
+                  <div className="space-y-4 pl-4 border-l-2 border-primary/20 animate-[slideUpFade_0.3s_ease-in-out]">
+                    {/* Annual Withdrawal Amount */}
+                    <div>
+                      <label className="block text-xs font-medium mb-1">
+                        Annual Withdrawal
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+                          $
+                        </span>
+                        <input
+                          type="number"
+                          value={
+                            typeof inputs.retirementPhase.annualWithdrawal ===
+                              "string" &&
+                            inputs.retirementPhase.annualWithdrawal === ""
+                              ? ""
+                              : inputs.retirementPhase.annualWithdrawal
+                          }
+                          onChange={(e) =>
+                            handleRetirementInputChange(
+                              "annualWithdrawal",
+                              e.target.value
+                            )
+                          }
+                          onBlur={(e) => {
+                            if (e.target.value === "") {
+                              handleRetirementInputChange(
+                                "annualWithdrawal",
+                                0
+                              );
+                            } else {
+                              handleRetirementInputChange(
+                                "annualWithdrawal",
+                                Number(e.target.value)
+                              );
+                            }
+                          }}
+                          className="w-full pl-7 pr-3 py-2 bg-background/50 border border-border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm"
+                          min="0"
+                        />
                       </div>
                     </div>
 
-                    <div className="flex items-center mb-4">
+                    {/* Retirement Years */}
+                    <div>
+                      <label className="block text-xs font-medium mb-1">
+                        Retirement Years
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          value={
+                            typeof inputs.retirementPhase.retirementYears ===
+                              "string" &&
+                            inputs.retirementPhase.retirementYears === ""
+                              ? ""
+                              : inputs.retirementPhase.retirementYears
+                          }
+                          onChange={(e) =>
+                            handleRetirementInputChange(
+                              "retirementYears",
+                              e.target.value
+                            )
+                          }
+                          onBlur={(e) => {
+                            if (e.target.value === "") {
+                              handleRetirementInputChange("retirementYears", 1);
+                            } else {
+                              handleRetirementInputChange(
+                                "retirementYears",
+                                Number(e.target.value)
+                              );
+                            }
+                          }}
+                          className="w-full px-3 py-2 bg-background/50 border border-border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm"
+                          min="1"
+                          max="50"
+                        />
+                        <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground text-xs">
+                          years
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Return in Retirement */}
+                    <div>
+                      <label className="block text-xs font-medium mb-1">
+                        Expected Return in Retirement
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          value={
+                            typeof inputs.retirementPhase.retirementReturn ===
+                              "string" &&
+                            inputs.retirementPhase.retirementReturn === ""
+                              ? ""
+                              : inputs.retirementPhase.retirementReturn
+                          }
+                          onChange={(e) =>
+                            handleRetirementInputChange(
+                              "retirementReturn",
+                              e.target.value
+                            )
+                          }
+                          onBlur={(e) => {
+                            if (e.target.value === "") {
+                              handleRetirementInputChange(
+                                "retirementReturn",
+                                0
+                              );
+                            } else {
+                              handleRetirementInputChange(
+                                "retirementReturn",
+                                Number(e.target.value)
+                              );
+                            }
+                          }}
+                          className="w-full pl-3 pr-9 py-2 bg-background/50 border border-border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm"
+                          min="0"
+                          step="0.1"
+                        />
+                        <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground text-xs">
+                          %
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Typically lower than accumulation phase (more
+                        conservative)
+                      </p>
+                    </div>
+
+                    {/* Adjust for Inflation */}
+                    <div className="flex items-center">
                       <input
                         type="checkbox"
-                        id="enable-retirement"
-                        checked={inputs.retirementPhase.enabled}
+                        id="inflation-adjust"
+                        checked={
+                          inputs.retirementPhase.withdrawalAdjustForInflation
+                        }
                         onChange={(e) =>
                           setInputs((prev) => ({
                             ...prev,
                             retirementPhase: {
                               ...prev.retirementPhase,
-                              enabled: e.target.checked,
+                              withdrawalAdjustForInflation: e.target.checked,
                             },
                           }))
                         }
                         className="w-4 h-4 mr-2 accent-primary"
                       />
-                      <label htmlFor="enable-retirement" className="text-sm">
-                        Enable retirement withdrawal phase
+                      <label htmlFor="inflation-adjust" className="text-xs">
+                        Adjust withdrawals for inflation
                       </label>
                     </div>
-
-                    {inputs.retirementPhase.enabled && (
-                      <div className="space-y-4 pl-4 border-l-2 border-primary/20 animate-[slideUpFade_0.3s_ease-in-out]">
-                        {/* Annual Withdrawal Amount */}
-                        <div>
-                          <label className="block text-xs font-medium mb-1">
-                            Annual Withdrawal
-                          </label>
-                          <div className="relative">
-                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
-                              $
-                            </span>
-                            <input
-                              type="number"
-                              value={
-                                typeof inputs.retirementPhase
-                                  .annualWithdrawal === "string" &&
-                                inputs.retirementPhase.annualWithdrawal === ""
-                                  ? ""
-                                  : inputs.retirementPhase.annualWithdrawal
-                              }
-                              onChange={(e) =>
-                                handleRetirementInputChange(
-                                  "annualWithdrawal",
-                                  e.target.value
-                                )
-                              }
-                              onBlur={(e) => {
-                                if (e.target.value === "") {
-                                  handleRetirementInputChange(
-                                    "annualWithdrawal",
-                                    0
-                                  );
-                                } else {
-                                  handleRetirementInputChange(
-                                    "annualWithdrawal",
-                                    Number(e.target.value)
-                                  );
-                                }
-                              }}
-                              className="w-full pl-7 pr-3 py-2 bg-background/50 border border-border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm"
-                              min="0"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Retirement Years */}
-                        <div>
-                          <label className="block text-xs font-medium mb-1">
-                            Retirement Years
-                          </label>
-                          <div className="relative">
-                            <input
-                              type="number"
-                              value={
-                                typeof inputs.retirementPhase
-                                  .retirementYears === "string" &&
-                                inputs.retirementPhase.retirementYears === ""
-                                  ? ""
-                                  : inputs.retirementPhase.retirementYears
-                              }
-                              onChange={(e) =>
-                                handleRetirementInputChange(
-                                  "retirementYears",
-                                  e.target.value
-                                )
-                              }
-                              onBlur={(e) => {
-                                if (e.target.value === "") {
-                                  handleRetirementInputChange(
-                                    "retirementYears",
-                                    1
-                                  );
-                                } else {
-                                  handleRetirementInputChange(
-                                    "retirementYears",
-                                    Number(e.target.value)
-                                  );
-                                }
-                              }}
-                              className="w-full px-3 py-2 bg-background/50 border border-border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm"
-                              min="1"
-                              max="50"
-                            />
-                            <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground text-xs">
-                              years
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Return in Retirement */}
-                        <div>
-                          <label className="block text-xs font-medium mb-1">
-                            Expected Return in Retirement
-                          </label>
-                          <div className="relative">
-                            <input
-                              type="number"
-                              value={
-                                typeof inputs.retirementPhase
-                                  .retirementReturn === "string" &&
-                                inputs.retirementPhase.retirementReturn === ""
-                                  ? ""
-                                  : inputs.retirementPhase.retirementReturn
-                              }
-                              onChange={(e) =>
-                                handleRetirementInputChange(
-                                  "retirementReturn",
-                                  e.target.value
-                                )
-                              }
-                              onBlur={(e) => {
-                                if (e.target.value === "") {
-                                  handleRetirementInputChange(
-                                    "retirementReturn",
-                                    0
-                                  );
-                                } else {
-                                  handleRetirementInputChange(
-                                    "retirementReturn",
-                                    Number(e.target.value)
-                                  );
-                                }
-                              }}
-                              className="w-full pl-3 pr-9 py-2 bg-background/50 border border-border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm"
-                              min="0"
-                              step="0.1"
-                            />
-                            <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground text-xs">
-                              %
-                            </span>
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Typically lower than accumulation phase (more
-                            conservative)
-                          </p>
-                        </div>
-
-                        {/* Adjust for Inflation */}
-                        <div className="flex items-center">
-                          <input
-                            type="checkbox"
-                            id="inflation-adjust"
-                            checked={
-                              inputs.retirementPhase
-                                .withdrawalAdjustForInflation
-                            }
-                            onChange={(e) =>
-                              setInputs((prev) => ({
-                                ...prev,
-                                retirementPhase: {
-                                  ...prev.retirementPhase,
-                                  withdrawalAdjustForInflation:
-                                    e.target.checked,
-                                },
-                              }))
-                            }
-                            className="w-4 h-4 mr-2 accent-primary"
-                          />
-                          <label htmlFor="inflation-adjust" className="text-xs">
-                            Adjust withdrawals for inflation
-                          </label>
-                        </div>
-                      </div>
-                    )}
                   </div>
-                </div>
-              )}
+                )}
+              </div>
 
               <button
                 onClick={handleCalculate}

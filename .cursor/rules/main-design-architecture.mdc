@@ -1,7 +1,7 @@
 ---
 description: 
 globs: 
-alwaysApply: true
+alwaysApply: false
 ---
 # Comprehensive Design Document
 ## Enhanced Compound Interest Calculator
