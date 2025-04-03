@@ -31,7 +31,7 @@ The calculator simulates real-world market randomness to provide realistic inves
    ```
    This creates a 5% chance each month of doubling the random variation, simulating unexpected market moves.
 
-- [More on Randomness](docs/randomness.md)
+- [More on Randomness](randomness.md)
 
 ## Core Calculation Functions
 
