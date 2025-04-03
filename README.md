@@ -11,8 +11,8 @@ A sophisticated financial planning tool that provides realistic investment proje
 - [Technical Architecture](#technical-architecture)
 - [Mathematical Models](#mathematical-models)
 - [Setup Guide](#setup-guide)
-- [Usage Guide](#usage-guide)
-- [Advanced Topics](#advanced-topics)
+- [Usage Guide](docs/user_guide.md)
+- [Advanced Topics(nerdy stuff)](docs/technical.guide.md)
 - [Contributing](#contributing)
 - [License](#license)
 
